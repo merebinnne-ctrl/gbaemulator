@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GBA Mobile Emulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #18191c;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            touch-action: manipulation;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        .slider-track {
+            display: flex;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            width: 400vw;
+            height: 100%;
+        }
+        .slide-item {
+            width: 100vw;
+            height: 100%;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem 2rem;
+            text-align: center;
+        }
+        .btn-ios {
+            background-color: #1a73e8;
+            transition: opacity 0.15s ease, transform 0.1s ease;
+        }
+        .btn-ios:active {
+            opacity: 0.85;
+            transform: scale(0.98);
+        }
+        .app-screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            background-color: #18191c;
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+            z-index: 10;
+            overflow-y: auto;
+        }
+        .screen-right {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .screen-left {
+            transform: translateX(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .screen-active {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        /* Custom iOS Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider-toggle {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #2c2d31;
+            transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 24px;
+        }
+        .slider-toggle:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 50%;
+        }
+        input:checked + .slider-toggle {
+            background-color: #1a73e8;
+        }
+        input:checked + .slider-toggle:before {
+            transform: translateX(20px);
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2c2d31;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-[#18191c]">
+
+    <!-- ================= 1. TUTORIAL SCREEN ================= -->
+    <div id="screen-tutorial" class="app-screen flex flex-col justify-between z-40 screen-active">
+        <div class="flex-1 w-full h-full overflow-hidden relative">
+            <div id="slider-track" class="slider-track">
+                
+                <!-- Slide 1 -->
+                <div class="slide-item">
+                    <svg class="w-16 h-16 mb-6 text-[#1a73e8] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <h2 class="text-2xl font-semibold mb-3 tracking-tight text-white">Desempenho Otimizado</h2>
+                    <p class="text-gray-300 text-sm leading-relaxed max-w-sm mx-auto">
+                        Motor de emulação profissional integrado, projetado para rodar títulos clássicos de Game Boy Advance e Color com taxa de quadros perfeita, áudio estéreo e alta compatibilidade.
+                    </p>
+                </div>
+
+                <!-- Slide 2 -->
+                <div class="slide-item">
+                    <svg class="w-16 h-16 mb-6 text-[#1a73e8] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <h2 class="text-2xl font-semibold mb-3 tracking-tight text-white">Arquivos de ROM (.gba / .gbc)</h2>
+                    <p class="text-gray-300 text-sm leading-relaxed max-w-sm mx-auto">
+                        O aplicativo utiliza arquivos digitais extraídos de cartuchos físicos. Você pode obtê-los em sites de preservação de softwares retrô ou utilizar cópias de segurança (backups) dos jogos que você já possui.
+                    </p>
+                </div>
+
+                <!-- Slide 3 -->
+                <div class="slide-item">
+                    <svg class="w-16 h-16 mb-6 text-[#1a73e8] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                    <h2 class="text-2xl font-semibold mb-3 tracking-tight text-white">Capas e Organização</h2>
+                    <p class="text-gray-300 text-sm leading-relaxed max-w-sm mx-auto">
+                        Personalize sua biblioteca adicionando capas personalizadas diretamente da galeria do seu dispositivo para manter seus títulos favoritos organizados em banners elegantes.
+                    </p>
+                </div>
+
+                <!-- Slide 4 -->
+                <div class="slide-item">
+                    <svg class="w-16 h-16 mb-6 text-[#1a73e8] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <h2 class="text-2xl font-semibold mb-3 tracking-tight text-white">Tudo Pronto</h2>
+                    <p class="text-gray-300 text-sm leading-relaxed max-w-sm mx-auto">
+                        Ambiente configurado com os melhores padrões de desempenho para garantir uma experiência imersiva, limpa e sem interrupções.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="px-6 pb-10 pt-2 flex flex-col space-y-4 max-w-xs mx-auto w-full z-10">
+            <div class="flex justify-center space-x-2 mb-2">
+                <span id="dot-0" class="w-4 h-1.5 rounded-full bg-white transition-all duration-300"></span>
+                <span id="dot-1" class="w-1.5 h-1.5 rounded-full bg-gray-600 transition-all duration-300"></span>
+                <span id="dot-2" class="w-1.5 h-1.5 rounded-full bg-gray-600 transition-all duration-300"></span>
+                <span id="dot-3" class="w-1.5 h-1.5 rounded-full bg-gray-600 transition-all duration-300"></span>
+            </div>
+
+            <button id="wizard-btn" onclick="nextSlide()" class="w-full py-3.5 rounded-2xl btn-ios text-white font-semibold text-sm shadow-md">
+                Continuar
+            </button>
+        </div>
+    </div>
+
+
+    <!-- ================= 2. HOME DASHBOARD SCREEN ================= -->
+    <div id="screen-home" class="app-screen screen-right">
+        <header class="flex items-center justify-between px-5 py-4 bg-[#202124] z-10">
+            <button onclick="navigateTo('screen-settings', 'forward')" class="text-gray-300 p-2 focus:outline-none rounded-xl active:bg-[#2c2d31]">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <h1 class="text-sm font-semibold text-white tracking-wide">Biblioteca de Jogos</h1>
+            <button onclick="navigateTo('screen-add-game', 'forward')" class="text-[#1a73e8] p-2 focus:outline-none rounded-xl active:bg-[#2c2d31]">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            </button>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4">
+            <div id="game-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-2xl mx-auto pb-24">
+                <!-- Dynamically populated game cards -->
+            </div>
+
+            <!-- Empty State Placeholder -->
+            <div id="empty-state" class="hidden flex-col items-center justify-center text-center py-32 px-6">
+                <svg class="w-12 h-12 text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                <p class="text-gray-300 text-sm font-medium">Nenhum jogo adicionado</p>
+                <p class="text-gray-500 text-xs mt-1">Toque no ícone (+) acima para importar sua primeira ROM.</p>
+            </div>
+        </main>
+    </div>
+
+
+    <!-- ================= 3. SETTINGS SCREEN ================= -->
+    <div id="screen-settings" class="app-screen screen-right">
+        <header class="flex items-center justify-between px-5 py-4 bg-[#202124] z-10">
+            <button onclick="navigateTo('screen-home', 'back')" class="text-xs font-semibold px-3.5 py-2 bg-[#28292d] text-gray-200 rounded-xl active:bg-[#34363c]">
+                ← Voltar
+            </button>
+            <h1 class="text-sm font-semibold text-white tracking-wide">Configurações</h1>
+            <div class="w-14"></div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-6">
+            <div>
+                <span class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">Áudio</span>
+                <div class="bg-[#202124] rounded-2xl overflow-hidden divide-y divide-[#28292d]">
+                    <div class="flex items-center justify-between px-4 py-4">
+                        <span class="text-xs font-medium text-gray-200">Som do Emulador</span>
+                        <label class="switch">
+                            <input type="checkbox" id="setting-audio" checked>
+                            <span class="slider-toggle"></span>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between px-4 py-4">
+                        <span class="text-xs font-medium text-gray-200">Áudio de Alta Qualidade</span>
+                        <label class="switch">
+                            <input type="checkbox" id="setting-hq-audio" checked>
+                            <span class="slider-toggle"></span>
+                        </label>
+                    </div>
+                    <div class="px-4 py-4 space-y-2.5">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-gray-200">Volume Geral</span>
+                            <span id="volume-val" class="text-xs text-gray-400">100%</span>
+                        </div>
+                        <input type="range" id="setting-volume" min="0" max="100" value="100" class="w-full accent-[#1a73e8] cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <span class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">Vídeo e Exibição</span>
+                <div class="bg-[#202124] rounded-2xl overflow-hidden divide-y divide-[#28292d]">
+                    <div class="px-4 py-4 space-y-2">
+                        <span class="text-xs font-medium text-gray-200 block">Escala de Vídeo</span>
+                        <select id="setting-scale" class="w-full bg-[#28292d] border-0 text-xs text-gray-200 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-[#1a73e8]">
+                            <option value="fit">Ajustar à Tela (Manter Proporção)</option>
+                            <option value="stretch">Esticar Tela Cheia</option>
+                            <option value="native">Tamanho Original (1x)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between px-4 py-4">
+                        <span class="text-xs font-medium text-gray-200">Filtro Pixel Art Nítido</span>
+                        <label class="switch">
+                            <input type="checkbox" id="setting-filter" checked>
+                            <span class="slider-toggle"></span>
+                        </label>
+                    </div>
+                    <div class="px-4 py-4 space-y-2">
+                        <span class="text-xs font-medium text-gray-200 block">Pular Quadros (Frameskip)</span>
+                        <select id="setting-frameskip" class="w-full bg-[#28292d] border-0 text-xs text-gray-200 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-[#1a73e8]">
+                            <option value="auto">Automático (Recomendado)</option>
+                            <option value="0">Desativado (0)</option>
+                            <option value="1">1 Quadro</option>
+                            <option value="2">2 Quadros</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <span class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">Controles e Sistema</span>
+                <div class="bg-[#202124] rounded-2xl overflow-hidden divide-y divide-[#28292d]">
+                    <div class="flex items-center justify-between px-4 py-4">
+                        <span class="text-xs font-medium text-gray-200">Vibração ao Toque (Haptics)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="setting-haptics" checked>
+                            <span class="slider-toggle"></span>
+                        </label>
+                    </div>
+                    <div class="px-4 py-4 space-y-2">
+                        <span class="text-xs font-medium text-gray-200 block">Velocidade Fast-Forward</span>
+                        <select id="setting-speed" class="w-full bg-[#28292d] border-0 text-xs text-gray-200 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-[#1a73e8]">
+                            <option value="1">Normal (1x)</option>
+                            <option value="2">Rápido (2x)</option>
+                            <option value="4">Extremo (4x)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between px-4 py-4">
+                        <span class="text-xs font-medium text-gray-200">Emulação de BIOS Externa</span>
+                        <label class="switch">
+                            <input type="checkbox" id="setting-bios">
+                            <span class="slider-toggle"></span>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between px-4 py-4">
+                        <span class="text-xs font-medium text-gray-200">Salvar Estado Automático (Auto-Save)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="setting-autosave" checked>
+                            <span class="slider-toggle"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+    <!-- ================= 4. ADD GAME SCREEN ================= -->
+    <div id="screen-add-game" class="app-screen screen-right">
+        <header class="flex items-center justify-between px-5 py-4 bg-[#202124] z-10">
+            <button onclick="navigateTo('screen-home', 'back')" class="text-xs font-semibold px-3.5 py-2 bg-[#28292d] text-gray-200 rounded-xl active:bg-[#34363c]">
+                ← Voltar
+            </button>
+            <h1 class="text-sm font-semibold text-white tracking-wide">Adicionar Novo Jogo</h1>
+            <div class="w-14"></div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-5 max-w-md mx-auto w-full space-y-5">
+            <div>
+                <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Nome do Jogo</label>
+                <input type="text" id="input-game-title" placeholder="Ex: Pokémon Emerald" class="w-full bg-[#202124] border-0 rounded-2xl px-4 py-3.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#1a73e8]">
+            </div>
+
+            <div>
+                <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Arquivo da ROM (.gba / .gbc)</label>
+                <input type="file" id="input-game-file" accept=".gba,.gbc" class="block w-full text-xs text-gray-400 file:mr-3 file:py-3 file:px-4 file:rounded-xl file:border-0 file:bg-[#1a73e8] file:text-white file:font-semibold">
+            </div>
+
+            <div>
+                <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Capa do Jogo (Galeria)</label>
+                <input type="file" id="input-game-cover" accept="image/*" class="block w-full text-xs text-gray-400 file:mr-3 file:py-3 file:px-4 file:rounded-xl file:border-0 file:bg-[#28292d] file:text-gray-300 file:font-semibold">
+                <p class="text-[11px] text-gray-500 mt-1.5">Opcional. Se omitido, uma capa padrão será gerada automaticamente.</p>
+            </div>
+
+            <div class="pt-3">
+                <button id="save-game-btn" onclick="saveGameToLibrary()" class="w-full py-4 rounded-2xl btn-ios text-white font-semibold text-xs shadow-md">
+                    Salvar na Biblioteca
+                </button>
+            </div>
+        </main>
+    </div>
+
+
+    <!-- ================= 5. EMULATOR & ENGINE SCREEN ================= -->
+    <div id="screen-emulator" class="app-screen screen-right bg-black flex flex-col justify-between">
+        <header class="flex justify-between items-center px-4 py-3 bg-[#18191c]/90 backdrop-blur-md absolute top-0 left-0 right-0 z-30">
+            <button onclick="exitEmulator()" class="text-xs font-semibold px-3.5 py-1.5 bg-[#28292d] text-gray-200 rounded-lg active:bg-[#34363c]">
+                ✕ Sair
+            </button>
+            <span id="active-game-title" class="text-xs font-semibold text-gray-200 truncate max-w-[200px]">GBA Emulator</span>
+            <button onclick="toggleFullscreen()" class="text-xs font-semibold px-3 py-1.5 bg-[#28292d] text-gray-200 rounded-lg active:bg-[#34363c]">
+                ⛶ Tela Cheia
+            </button>
+        </header>
+
+        <!-- EmulatorJS Container -->
+        <div class="flex-1 flex items-center justify-center relative w-full h-full bg-black">
+            <div id="game" class="w-full h-full absolute inset-0"></div>
+        </div>
+    </div>
+
+
+    <!-- ================= 6. APPLICATION CONTROLLER SCRIPT ================= -->
+    <script>
+        let currentSlideIndex = 0;
+        const totalSlides = 4;
+        let db = null;
+        let activeRomObjectUrl = null;
+        let activeGameId = null;
+
+        function bytesFromSave(value) {
+            if (value instanceof ArrayBuffer) return value;
+            if (ArrayBuffer.isView(value)) return value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+            if (value instanceof Blob) return value.arrayBuffer();
+            if (value && value.buffer instanceof ArrayBuffer) return value.buffer;
+            return null;
+        }
+
+        function persistProgress(storeName, gameId, value) {
+            if (!db || gameId == null || value == null) return;
+            try {
+                const tx = db.transaction([storeName], 'readwrite');
+                tx.objectStore(storeName).put({ gameId, data: value, updatedAt: Date.now() });
+            } catch (err) {
+                console.warn('Não foi possível guardar o progresso:', err);
+            }
+        }
+
+        function readStoredProgress(storeName, gameId) {
+            return new Promise((resolve) => {
+                if (!db || gameId == null) return resolve(null);
+                try {
+                    const tx = db.transaction([storeName], 'readonly');
+                    const req = tx.objectStore(storeName).get(gameId);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => resolve(null);
+                } catch (_) { resolve(null); }
+            });
+        }
+
+        function navigateTo(targetId, direction = 'forward') {
+            const screens = ['screen-tutorial', 'screen-home', 'screen-settings', 'screen-add-game', 'screen-emulator'];
+            const currentId = screens.find(id => document.getElementById(id).classList.contains('screen-active'));
+            
+            if (currentId === targetId) return;
+
+            const currentEl = document.getElementById(currentId);
+            const targetEl = document.getElementById(targetId);
+            
+            targetEl.style.transition = 'none';
+            if (direction === 'forward') {
+                targetEl.className = 'app-screen screen-right';
+            } else {
+                targetEl.className = 'app-screen screen-left';
+            }
+            
+            void targetEl.offsetWidth;
+
+            targetEl.style.transition = '';
+            currentEl.style.transition = '';
+
+            if (direction === 'forward') {
+                currentEl.className = 'app-screen screen-left';
+                targetEl.className = 'app-screen screen-active';
+            } else {
+                currentEl.className = 'app-screen screen-right';
+                targetEl.className = 'app-screen screen-active';
+            }
+
+            if (targetId === 'screen-home') {
+                stopEmulator();
+                loadLibrary();
+            }
+        }
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('GBAEmulatorDB', 2);
+                request.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains('games')) {
+                        database.createObjectStore('games', { keyPath: 'id', autoIncrement: true });
+                    }
+                    if (!database.objectStoreNames.contains('progress')) {
+                        database.createObjectStore('progress', { keyPath: 'gameId' });
+                    }
+                    if (!database.objectStoreNames.contains('saveFiles')) {
+                        database.createObjectStore('saveFiles', { keyPath: 'gameId' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        function nextSlide() {
+            if (currentSlideIndex < totalSlides - 1) {
+                currentSlideIndex++;
+                updateSliderPosition();
+            } else {
+                localStorage.setItem('gba_wizard_completed', 'true');
+                navigateTo('screen-home', 'forward');
+            }
+        }
+
+        function updateSliderPosition() {
+            const track = document.getElementById('slider-track');
+            if (track) {
+                track.style.transform = `translateX(-${currentSlideIndex * 100}vw)`;
+            }
+            
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if (dot) {
+                    if (i === currentSlideIndex) {
+                        dot.className = 'w-4 h-1.5 rounded-full bg-white transition-all duration-300';
+                    } else {
+                        dot.className = 'w-1.5 h-1.5 rounded-full bg-gray-600 transition-all duration-300';
+                    }
+                }
+            }
+
+            const wizardBtn = document.getElementById('wizard-btn');
+            if (wizardBtn) {
+                if (currentSlideIndex === totalSlides - 1) {
+                    wizardBtn.innerText = 'Começar';
+                } else {
+                    wizardBtn.innerText = 'Continuar';
+                }
+            }
+        }
+
+        async function saveGameToLibrary() {
+            const titleInput = document.getElementById('input-game-title');
+            const romFileInput = document.getElementById('input-game-file');
+            const coverFileInput = document.getElementById('input-game-cover');
+            const saveBtn = document.getElementById('save-game-btn');
+
+            const title = titleInput.value.trim();
+            const romFile = romFileInput.files[0];
+            const coverFile = coverFileInput.files[0];
+
+            if (!title || !romFile) {
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.innerText = 'Salvando...';
+            saveBtn.style.opacity = '0.7';
+
+            try {
+                const romBuffer = await romFile.arrayBuffer();
+                let coverDataUrl = '';
+
+                if (coverFile) {
+                    coverDataUrl = await new Promise((res) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => res(e.target.result);
+                        reader.readAsDataURL(coverFile);
+                    });
+                } else {
+                    coverDataUrl = `https://placehold.co/400x500/202124/1a73e8?text=${encodeURIComponent(title)}`;
+                }
+
+                const transaction = db.transaction(['games'], 'readwrite');
+                const store = transaction.objectStore('games');
+                store.add({
+                    title: title,
+                    rom: romBuffer,
+                    cover: coverDataUrl,
+                    addedAt: Date.now()
+                });
+
+                transaction.oncomplete = () => {
+                    titleInput.value = '';
+                    romFileInput.value = '';
+                    coverFileInput.value = '';
+                    saveBtn.disabled = false;
+                    saveBtn.innerText = 'Salvar na Biblioteca';
+                    saveBtn.style.opacity = '1';
+                    navigateTo('screen-home', 'back');
+                };
+
+                transaction.onerror = (e) => {
+                    throw e;
+                };
+            } catch (err) {
+                saveBtn.disabled = false;
+                saveBtn.innerText = 'Salvar na Biblioteca';
+                saveBtn.style.opacity = '1';
+            }
+        }
+
+        function loadLibrary() {
+            const grid = document.getElementById('game-grid');
+            const emptyState = document.getElementById('empty-state');
+            if (!grid || !emptyState) return;
+            grid.innerHTML = '';
+
+            const transaction = db.transaction(['games'], 'readonly');
+            const store = transaction.objectStore('games');
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const games = request.result;
+                if (!games || games.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    emptyState.classList.add('flex');
+                } else {
+                    emptyState.classList.add('hidden');
+                    emptyState.classList.remove('flex');
+
+                    games.forEach((game) => {
+                        const card = document.createElement('div');
+                        card.className = 'group relative flex flex-col bg-[#202124] rounded-2xl overflow-hidden shadow-md active:scale-[0.98] transition-transform cursor-pointer aspect-[3/4] w-full';
+                        card.innerHTML = `
+                            <img src="${game.cover}" class="absolute inset-0 w-full h-full object-cover" alt="${game.title}" />
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-3.5 flex flex-col justify-end">
+                                <h3 class="text-xs font-semibold text-white tracking-wide truncate">${game.title}</h3>
+                                <span class="text-[10px] text-gray-400 mt-0.5">Game Boy Advance</span>
+                            </div>
+                        `;
+                        card.onclick = () => launchEmulator(game);
+                        grid.appendChild(card);
+                    });
+                }
+            };
+        }
+
+        async function launchEmulator(game) {
+            activeGameId = game.id;
+            document.getElementById('active-game-title').innerText = game.title;
+            navigateTo('screen-emulator', 'forward');
+            // O EmulatorJS gerencia os Save States nativamente no armazenamento do navegador.
+            // Não tentar baixar um estado por Blob URL, pois isso pode causar erro de download.
+            startEmulator(game.rom, game);
+        }
+
+        function startEmulator(romBuffer, game) {
+            const container = document.getElementById('game');
+            container.innerHTML = '';
+
+            const blob = new Blob([romBuffer], { type: 'application/octet-stream' });
+            if (activeRomObjectUrl) {
+                URL.revokeObjectURL(activeRomObjectUrl);
+            }
+            activeRomObjectUrl = URL.createObjectURL(blob);
+
+            window.EJS_player = '#game';
+            window.EJS_gameUrl = activeRomObjectUrl;
+            window.EJS_core = 'gba';
+            window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+            window.EJS_startOnLoaded = true;
+            window.EJS_color = '#18191c';
+
+            // Identidade estável por jogo: separa os saves de cada ROM.
+            window.EJS_gameID = Number(game && game.id) || 1;
+            window.EJS_gameName = (game && game.title) || 'GBA Game';
+            // Pede ao EmulatorJS para gravar periodicamente os saves normais do jogo.
+            window.EJS_fixedSaveInterval = 10000;
+            window.EJS_disableLocalStorage = false;
+
+            // Persiste os saves internos (por exemplo, salvamento dentro do Pokémon).
+            window.EJS_onSaveUpdate = function (event) {
+                try {
+                    const save = event && (event.save || event.data);
+                    if (!save) return;
+                    const blob = save instanceof Blob ? save : new Blob([save], { type: 'application/octet-stream' });
+                    persistProgress('saveFiles', activeGameId, blob);
+                } catch (err) {
+                    console.warn('Falha ao salvar dados do jogo:', err);
+                }
+            };
+
+            // Não definir EJS_loadStateURL: os estados são geridos pelo próprio EmulatorJS
+            // através do armazenamento do navegador, separados por EJS_gameID.
+
+            const existingScript = document.getElementById('ejs-loader');
+            if (existingScript) {
+                existingScript.remove();
+            }
+
+            const script = document.createElement('script');
+            script.id = 'ejs-loader';
+            script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+            document.body.appendChild(script);
+        }
+
+        function stopEmulator() {
+            const container = document.getElementById('game');
+            if (container) {
+                container.innerHTML = '';
+            }
+            if (activeRomObjectUrl) {
+                URL.revokeObjectURL(activeRomObjectUrl);
+                activeRomObjectUrl = null;
+            }
+            activeGameId = null;
+        }
+
+        function exitEmulator() {
+            stopEmulator();
+            navigateTo('screen-home', 'back');
+        }
+
+        function toggleFullscreen() {
+            const elem = document.getElementById('screen-emulator');
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => console.log(err));
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(err => console.log(err));
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+
+        const volumeSlider = document.getElementById('setting-volume');
+        if (volumeSlider) {
+            volumeSlider.addEventListener('input', (e) => {
+                const volVal = document.getElementById('volume-val');
+                if (volVal) volVal.innerText = e.target.value + '%';
+            });
+        }
+
+        window.onload = async () => {
+            await initDB();
+            if (localStorage.getItem('gba_wizard_completed') === 'true') {
+                navigateTo('screen-home', 'forward');
+            } else {
+                updateSliderPosition();
+                navigateTo('screen-tutorial', 'forward');
+            }
+        };
+    </script>
+</body>
+</html>
